@@ -1,76 +1,72 @@
-// The Swift Programming Language
-// https://docs.swift.org/swift-book
-
-import SwiftUI
-
-@available(macOS 10.15, *)
-struct ContentView: View {
-    @State private var isExpanded = false
-
-    var body: some View {
-        ZStack {
-            Color.clear
-                .edgesIgnoringSafeArea(.all)
-
-            VStack {
-                if isExpanded {
-                    ExpandedView()
-                        .transition(.move(edge: .top))
-                } else {
-                    NotchView()
-                        .onTapGesture {
-                            withAnimation {
-                                isExpanded.toggle()
-                            }
-                        }
-                }
-            }
-            .padding(.top, 50)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        }
-    }
-}
-
-@available(macOS 10.15, *)
-struct NotchView: View {
-    var body: some View {
-        RoundedRectangle(cornerRadius: 20)
-            .fill(Color.black)
-            .frame(width: 200, height: 50)
-            .overlay(
-                Text("Dynamic Island")
-                    .foregroundColor(.white)
-            )
-            .padding(.top, 20)
-    }
-}
-
-@available(macOS 10.15, *)
-struct ExpandedView: View {
-    var body: some View {
-        RoundedRectangle(cornerRadius: 20)
-            .fill(Color.black)
-            .frame(width: 300, height: 200)
-            .overlay(
-                VStack {
-                    Text("Expanded View")
-                        .foregroundColor(.white)
-                    Text("More information here...")
-                        .foregroundColor(.white)
-                }
-            )
-            .padding(.top, 20)
-    }
-}
+import Cocoa
 
 @main
-@available(macOS 11.0, *)
-struct MyApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .windowStyle(DefaultWindowStyle())
+struct MyApp {
+    static func main() {
+        let app = NSApplication.shared
+        let delegate = AppDelegate()
+        app.delegate = delegate
+        app.run()
+    }
+}
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    var window: NSWindow!
+
+    func applicationDidFinishLaunching(_ aNotification: Notification) {
+        let screenSize = NSScreen.main?.frame.size ?? NSSize(width: 800, height: 600)
+        let windowSize = NSSize(width: 250, height: 50)
+
+        let xPosition = (screenSize.width - windowSize.width) / 2
+        let yPosition = screenSize.height - windowSize.height  // Position en haut de l'écran
+        window = NSWindow(
+            contentRect: NSRect(
+                origin: NSPoint(x: xPosition, y: yPosition),
+                size: windowSize),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.level = .floating
+        window.makeKeyAndOrderFront(nil)
+
+        let notchView = NotchView(
+            frame: NSRect(x: 0, y: 0, width: windowSize.width, height: windowSize.height)
+        )
+
+        window.contentView?.addSubview(notchView)
+
+        // Positionner NotchView en haut et centré
+        notchView.frame.origin = NSPoint(
+            x: (windowSize.width - notchView.frame.width) / 2,  // Centré horizontalement
+            y: 0  // Positionné en haut de la fenêtre
+        )
+        notchView.autoresizingMask = [.width, .height]
+    }
+}
+
+class NotchView: NSView {
+    private var isExpanded = false
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+
+        NSColor.black.setFill()
+        let path = NSBezierPath(roundedRect: bounds, xRadius: 20, yRadius: 20)
+        path.fill()
+
+        let textAttributes: [NSAttributedString.Key: Any] = [
+            .foregroundColor: NSColor.white,
+            .font: NSFont.systemFont(ofSize: 16),
+        ]
+        let text = "Dynamic Island"
+        let textSize = text.size(withAttributes: textAttributes)
+        let textRect = NSRect(
+            x: (bounds.width - textSize.width) / 2, y: (bounds.height - textSize.height) / 2,
+            width: textSize.width, height: textSize.height)
+        text.draw(in: textRect, withAttributes: textAttributes)
     }
 }
