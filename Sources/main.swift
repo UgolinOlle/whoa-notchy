@@ -31,6 +31,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.isOpaque = false
         window.backgroundColor = .clear
         window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .transient]
         window.makeKeyAndOrderFront(nil)
 
         let notchView = NotchView(
@@ -39,10 +40,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         window.contentView?.addSubview(notchView)
 
-        notchView.frame.origin = NSPoint(
-            x: (windowSize.width - notchView.frame.width) / 2,
-            y: 0
-        )
+        notchView.frame.origin = NSPoint(x: 0, y: 0)
         notchView.autoresizingMask = [.width, .height]
     }
 }
@@ -62,20 +60,20 @@ class NotchView: NSView {
 
     override func mouseDown(with event: NSEvent) {
         isExpanded.toggle()
-        let newSize =
-            isExpanded
-            ? NSSize(width: originalSize.width * 1.5, height: originalSize.height * 1.5)
-            : originalSize
+
+        let newHeight = isExpanded ? originalSize.height * 1.5 : originalSize.height
+        let newSize = NSSize(width: originalSize.width, height: newHeight)
 
         if let window = self.window {
-            let newWindowSize = NSSize(width: newSize.width, height: newSize.height)
-            let newOrigin = NSPoint(
-                x: (window.frame.width - newWindowSize.width) / 2,
-                y: window.frame.origin.y)
+            let screenFrame = window.screen!.frame
+            let xPosition = (screenFrame.width - newSize.width) / 2
+            let yPosition = screenFrame.height - originalSize.height  // Position initiale en haut-centre
+
             NSAnimationContext.runAnimationGroup({ context in
                 context.duration = 0.3
                 window.animator().setFrame(
-                    NSRect(origin: newOrigin, size: newWindowSize), display: true)
+                    NSRect(origin: NSPoint(x: xPosition, y: yPosition), size: newSize),
+                    display: true)
                 self.animator().frame.size = newSize
             })
         }
@@ -95,8 +93,10 @@ class NotchView: NSView {
         let text = "Dynamic Island"
         let textSize = text.size(withAttributes: textAttributes)
         let textRect = NSRect(
-            x: (bounds.width - textSize.width) / 2, y: (bounds.height - textSize.height) / 2,
-            width: textSize.width, height: textSize.height)
+            x: (bounds.width - textSize.width) / 2,
+            y: (bounds.height - textSize.height) / 2,
+            width: textSize.width,
+            height: textSize.height)
         text.draw(in: textRect, withAttributes: textAttributes)
     }
 }

@@ -1,2 +1,2 @@
 all:
-	rm .build; clear; swift run;
+	rm .build;clear;swift run
