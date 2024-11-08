@@ -7,9 +7,13 @@ class NotchView: NSView {
     private var outsideClickMonitor: Any?
     private let hoverIncrease: CGFloat = 10
     private var isHovered = false
+    private let navigationBar: NavigationBar
 
     override init(frame frameRect: NSRect) {
         self.originalSize = frameRect.size
+        self.navigationBar = NavigationBar(
+            frame: NSRect(x: 0, y: frameRect.height - 40, width: frameRect.width, height: 40))
+
         super.init(frame: frameRect)
 
         self.wantsLayer = true
@@ -35,6 +39,13 @@ class NotchView: NSView {
     override func mouseDown(with event: NSEvent) {
         isExpanded.toggle()
         updateViewSize()
+
+        if isExpanded {
+            addSubview(navigationBar)
+        } else {
+            navigationBar.removeFromSuperview()
+        }
+
         startOutsideClickMonitor()
     }
 
@@ -45,6 +56,7 @@ class NotchView: NSView {
 
     override func mouseExited(with event: NSEvent) {
         isHovered = false
+        updateViewSize()
     }
 
     private func updateViewSize() {
@@ -83,6 +95,7 @@ class NotchView: NSView {
                 if !window.frame.contains(event.locationInWindow) {
                     self.isExpanded = false
                     self.updateViewSize()
+                    self.navigationBar.removeFromSuperview()
                     self.stopOutsideClickMonitor()
                 }
             }
@@ -116,6 +129,15 @@ class NotchView: NSView {
                 width: textSize.width,
                 height: textSize.height)
             text.draw(in: textRect, withAttributes: textAttributes)
+        }
+    }
+
+    override func layout() {
+        super.layout()
+
+        if isExpanded {
+            navigationBar.frame = NSRect(
+                x: 0, y: bounds.height - 40, width: bounds.width, height: 40)
         }
     }
 }
