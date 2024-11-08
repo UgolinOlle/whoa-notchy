@@ -2,6 +2,7 @@ import Cocoa
 
 class NotchView: NSView {
     private var isExpanded = false
+    var isExpandable = false
     private let originalSize: NSSize
     private let expandedSize = NSSize(width: 350, height: 150)
     private var outsideClickMonitor: Any?
@@ -10,14 +11,17 @@ class NotchView: NSView {
     private let navigationBar: NavigationBar
 
     override init(frame frameRect: NSRect) {
-        self.originalSize = frameRect.size
-        self.navigationBar = NavigationBar(
+        originalSize = frameRect.size
+        navigationBar = NavigationBar(
             frame: NSRect(x: 0, y: frameRect.height - 40, width: frameRect.width, height: 40))
 
         super.init(frame: frameRect)
 
-        self.wantsLayer = true
-        if let layer = self.layer {
+        // Assigner la référence de NotchView dans la barre de navigation
+        navigationBar.notchView = self
+
+        wantsLayer = true
+        if let layer = layer {
             layer.shadowColor = NSColor.black.cgColor
             layer.shadowOpacity = 0.8
             layer.shadowRadius = 20
@@ -28,15 +32,17 @@ class NotchView: NSView {
             rect: bounds,
             options: [.mouseEnteredAndExited, .activeAlways],
             owner: self,
-            userInfo: nil)
+            userInfo: nil
+        )
         addTrackingArea(trackingArea)
     }
 
-    required init?(coder: NSCoder) {
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func mouseDown(with event: NSEvent) {
+    override func mouseDown(with _: NSEvent) {
         isExpanded.toggle()
         updateViewSize()
 
@@ -49,14 +55,22 @@ class NotchView: NSView {
         startOutsideClickMonitor()
     }
 
-    override func mouseEntered(with event: NSEvent) {
+    override func mouseEntered(with _: NSEvent) {
         isHovered = true
         updateViewSize()
     }
 
-    override func mouseExited(with event: NSEvent) {
+    override func mouseExited(with _: NSEvent) {
         isHovered = false
         updateViewSize()
+    }
+
+    func closeNotchView() {
+        if isExpanded {
+            isExpanded = false
+            updateViewSize()
+            navigationBar.removeFromSuperview()
+        }
     }
 
     private func updateViewSize() {
@@ -67,23 +81,25 @@ class NotchView: NSView {
         } else if isHovered {
             newSize = NSSize(
                 width: originalSize.width + hoverIncrease,
-                height: originalSize.height + hoverIncrease)
+                height: originalSize.height + hoverIncrease
+            )
         } else {
             newSize = originalSize
         }
 
-        if let window = self.window {
+        if let window = window {
             let screenFrame = window.screen!.frame
             let xPosition = (screenFrame.width - newSize.width) / 2
             let yPosition = screenFrame.height - newSize.height + 15
 
-            NSAnimationContext.runAnimationGroup({ context in
+            NSAnimationContext.runAnimationGroup { context in
                 context.duration = 0.3
                 window.animator().setFrame(
                     NSRect(origin: NSPoint(x: xPosition, y: yPosition), size: newSize),
-                    display: true)
+                    display: true
+                )
                 self.animator().frame.size = newSize
-            })
+            }
         }
     }
 
@@ -127,7 +143,8 @@ class NotchView: NSView {
                 x: (bounds.width - textSize.width) / 2,
                 y: (bounds.height - textSize.height) / 2,
                 width: textSize.width,
-                height: textSize.height)
+                height: textSize.height
+            )
             text.draw(in: textRect, withAttributes: textAttributes)
         }
     }
@@ -137,7 +154,8 @@ class NotchView: NSView {
 
         if isExpanded {
             navigationBar.frame = NSRect(
-                x: 0, y: bounds.height - 40, width: bounds.width, height: 40)
+                x: 0, y: bounds.height - 40, width: bounds.width, height: 40
+            )
         }
     }
 }
