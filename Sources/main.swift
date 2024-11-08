@@ -15,10 +15,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         let screenSize = NSScreen.main?.frame.size ?? NSSize(width: 800, height: 600)
-        let windowSize = NSSize(width: 250, height: 30)
+        let windowSize = NSSize(width: 250, height: 20)
 
         let xPosition = (screenSize.width - windowSize.width) / 2
-        let yPosition = screenSize.height - windowSize.height
+        let yPosition = screenSize.height - windowSize.height + 15  // Ajout de +15 pour la position initiale
         window = NSWindow(
             contentRect: NSRect(
                 origin: NSPoint(x: xPosition, y: yPosition),
@@ -30,7 +30,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         window.isOpaque = false
         window.backgroundColor = .clear
-        window.level = .floating
+        window.level = .mainMenu + 3
         window.collectionBehavior = [.canJoinAllSpaces, .transient]
         window.makeKeyAndOrderFront(nil)
 
@@ -54,6 +54,12 @@ class NotchView: NSView {
     override init(frame frameRect: NSRect) {
         self.originalSize = frameRect.size
         super.init(frame: frameRect)
+
+        self.wantsLayer = true
+        self.layer?.shadowColor = NSColor.black.cgColor
+        self.layer?.shadowOpacity = 0.5
+        self.layer?.shadowRadius = 10
+        self.layer?.shadowOffset = CGSize(width: 0, height: -5)
     }
 
     required init?(coder: NSCoder) {
@@ -69,7 +75,7 @@ class NotchView: NSView {
         if let window = self.window {
             let screenFrame = window.screen!.frame
             let xPosition = (screenFrame.width - newSize.width) / 2
-            let yPosition = screenFrame.height - originalSize.height
+            let yPosition = screenFrame.height - newSize.height + 15  // Ajout de +15 pour la position en mode agrandi
 
             NSAnimationContext.runAnimationGroup({ context in
                 context.duration = 0.5
@@ -118,7 +124,7 @@ class NotchView: NSView {
         if let window = self.window {
             let screenFrame = window.screen!.frame
             let xPosition = (screenFrame.width - newSize.width) / 2
-            let yPosition = screenFrame.height - originalSize.height
+            let yPosition = screenFrame.height - newSize.height + 15  // Ajout de +15 pour la position en mode réduit
 
             NSAnimationContext.runAnimationGroup({ context in
                 context.duration = 0.3
