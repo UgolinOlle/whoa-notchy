@@ -18,7 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let windowSize = NSSize(width: 250, height: 50)
 
         let xPosition = (screenSize.width - windowSize.width) / 2
-        let yPosition = screenSize.height - windowSize.height  // Position en haut de l'écran
+        let yPosition = screenSize.height - windowSize.height
         window = NSWindow(
             contentRect: NSRect(
                 origin: NSPoint(x: xPosition, y: yPosition),
@@ -39,10 +39,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         window.contentView?.addSubview(notchView)
 
-        // Positionner NotchView en haut et centré
         notchView.frame.origin = NSPoint(
-            x: (windowSize.width - notchView.frame.width) / 2,  // Centré horizontalement
-            y: 0  // Positionné en haut de la fenêtre
+            x: (windowSize.width - notchView.frame.width) / 2,
+            y: 0
         )
         notchView.autoresizingMask = [.width, .height]
     }
@@ -50,6 +49,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 class NotchView: NSView {
     private var isExpanded = false
+    private let originalSize: NSSize
+
+    override init(frame frameRect: NSRect) {
+        self.originalSize = frameRect.size
+        super.init(frame: frameRect)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        isExpanded.toggle()
+        let newSize =
+            isExpanded
+            ? NSSize(width: originalSize.width * 1.5, height: originalSize.height * 1.5)
+            : originalSize
+
+        if let window = self.window {
+            let newWindowSize = NSSize(width: newSize.width, height: newSize.height)
+            let newOrigin = NSPoint(
+                x: (window.frame.width - newWindowSize.width) / 2,
+                y: window.frame.origin.y)
+            NSAnimationContext.runAnimationGroup({ context in
+                context.duration = 0.3
+                window.animator().setFrame(
+                    NSRect(origin: newOrigin, size: newWindowSize), display: true)
+                self.animator().frame.size = newSize
+            })
+        }
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
