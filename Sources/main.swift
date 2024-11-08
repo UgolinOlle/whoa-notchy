@@ -15,7 +15,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         let screenSize = NSScreen.main?.frame.size ?? NSSize(width: 800, height: 600)
-        let windowSize = NSSize(width: 250, height: 50)
+        let windowSize = NSSize(width: 250, height: 30)
 
         let xPosition = (screenSize.width - windowSize.width) / 2
         let yPosition = screenSize.height - windowSize.height
@@ -48,6 +48,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 class NotchView: NSView {
     private var isExpanded = false
     private let originalSize: NSSize
+    private let expandedSize = NSSize(width: 350, height: 150)
+    private var outsideClickMonitor: Any?
 
     override init(frame frameRect: NSRect) {
         self.originalSize = frameRect.size
@@ -60,14 +62,63 @@ class NotchView: NSView {
 
     override func mouseDown(with event: NSEvent) {
         isExpanded.toggle()
+        setNeedsDisplay(bounds)
 
-        let newHeight = isExpanded ? originalSize.height * 1.5 : originalSize.height
-        let newSize = NSSize(width: originalSize.width, height: newHeight)
+        let newSize = isExpanded ? expandedSize : originalSize
 
         if let window = self.window {
             let screenFrame = window.screen!.frame
             let xPosition = (screenFrame.width - newSize.width) / 2
-            let yPosition = screenFrame.height - originalSize.height  // Position initiale en haut-centre
+            let yPosition = screenFrame.height - originalSize.height
+
+            NSAnimationContext.runAnimationGroup({ context in
+                context.duration = 0.5
+                window.animator().setFrame(
+                    NSRect(origin: NSPoint(x: xPosition, y: yPosition), size: newSize),
+                    display: true)
+                self.animator().frame.size = newSize
+            })
+
+            if isExpanded {
+                startOutsideClickMonitor()
+            } else {
+                stopOutsideClickMonitor()
+            }
+        }
+    }
+
+    private func startOutsideClickMonitor() {
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) {
+            [weak self] event in
+            guard let self = self, let window = self.window, let contentView = window.contentView
+            else { return }
+            let clickLocation = NSPoint(x: event.locationInWindow.x, y: event.locationInWindow.y)
+            let windowLocation = window.convertPoint(fromScreen: clickLocation)
+            let localPoint = contentView.convert(windowLocation, from: nil)
+            let clickInsideWindow = contentView.bounds.contains(localPoint)
+
+            if !clickInsideWindow && self.isExpanded {
+                self.toggleSize()
+            }
+        }
+    }
+
+    private func stopOutsideClickMonitor() {
+        if let monitor = outsideClickMonitor {
+            NSEvent.removeMonitor(monitor)
+            outsideClickMonitor = nil
+        }
+    }
+
+    private func toggleSize() {
+        isExpanded = false
+        setNeedsDisplay(bounds)
+        let newSize = originalSize
+
+        if let window = self.window {
+            let screenFrame = window.screen!.frame
+            let xPosition = (screenFrame.width - newSize.width) / 2
+            let yPosition = screenFrame.height - originalSize.height
 
             NSAnimationContext.runAnimationGroup({ context in
                 context.duration = 0.3
@@ -77,26 +128,30 @@ class NotchView: NSView {
                 self.animator().frame.size = newSize
             })
         }
+
+        stopOutsideClickMonitor()
     }
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
 
         NSColor.black.setFill()
-        let path = NSBezierPath(roundedRect: bounds, xRadius: 20, yRadius: 20)
+        let path = NSBezierPath(roundedRect: bounds, xRadius: 10, yRadius: 10)
         path.fill()
 
-        let textAttributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: NSColor.white,
-            .font: NSFont.systemFont(ofSize: 16),
-        ]
-        let text = "Dynamic Island"
-        let textSize = text.size(withAttributes: textAttributes)
-        let textRect = NSRect(
-            x: (bounds.width - textSize.width) / 2,
-            y: (bounds.height - textSize.height) / 2,
-            width: textSize.width,
-            height: textSize.height)
-        text.draw(in: textRect, withAttributes: textAttributes)
+        if isExpanded {
+            let textAttributes: [NSAttributedString.Key: Any] = [
+                .foregroundColor: NSColor.white,
+                .font: NSFont.systemFont(ofSize: 16),
+            ]
+            let text = "Dynamic Island"
+            let textSize = text.size(withAttributes: textAttributes)
+            let textRect = NSRect(
+                x: (bounds.width - textSize.width) / 2,
+                y: (bounds.height - textSize.height) / 2,
+                width: textSize.width,
+                height: textSize.height)
+            text.draw(in: textRect, withAttributes: textAttributes)
+        }
     }
 }
